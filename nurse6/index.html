@@ -1,1 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy Quiz</title>
 
+<style>
+/* ===== 全体 ===== */
+#quiz {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* ===== 操作ボタン ===== */
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: none !important;
+  background: #1976d2 !important;
+  color: #fff !important;
+  font-weight: bold;
+  font-size: 0.9em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+.btn:nth-child(2) {
+  background: #43a047 !important;
+}
+
+.btn:nth-child(3) {
+  background: #757575 !important;
+}
+
+/* ===== リスト ===== */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+/* ===== カード ===== */
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ===== 問題 ===== */
+.q {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95em;
+  line-height: 1.35;
+}
+
+/* ===== 答え ===== */
+.a {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  min-height: 34px;
+
+  background: #444;
+  color: #444;
+  border-radius: 8px;
+
+  display: block;
+
+  font-size: 0.85em;
+  text-align: center;
+  line-height: 1.3;
+
+  padding: 6px 8px;
+  box-sizing: border-box;
+
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.a.show {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.a:hover {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* ===== 音声ボタン ===== */
+.speak-btn {
+  background: #eef2f7;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+</style>
+</head>
+
+<body>
+
+<div id="quiz">
+  <div class="controls">
+    <button class="btn" onclick="toggleMode()">🔁 英→日</button>
+    <button class="btn" onclick="render(true)">🔀 シャッフル</button>
+    <button class="btn" onclick="render(false)">標準順</button>
+  </div>
+
+  <ul id="list" class="list"></ul>
+</div>
+
+<script>
+let isEnglishMode = true;
+
+const words = [
+  {en:"medicine", jp:"医学"},
+  {en:"doctor / physician", jp:"医師"},
+  {en:"resident", jp:"研修医"},
+  {en:"emergency medicine", jp:"救急医学"},
+  {en:"preventive medicine", jp:"予防医学"},
+  {en:"internal medicine", jp:"内科"},
+  {en:"internist", jp:"内科医"},
+  {en:"general practitioner / general physician", jp:"総合診療医，一般開業医"},
+  {en:"surgery", jp:"外科"},
+  {en:"surgeon", jp:"外科医"},
+  {en:"orthopedics", jp:"整形外科"},
+  {en:"orthopedist", jp:"整形外科医"},
+  {en:"neurology", jp:"神経内科"},
+  {en:"brain specialist / neurologist", jp:"神経内科医"},
+  {en:"neurosurgery", jp:"脳神経外科"},
+  {en:"neurosurgeon", jp:"脳神経外科医"},
+  {en:"cardiology", jp:"循環器内科"},
+  {en:"cardiologist", jp:"循環器内科医"},
+  {en:"cardiovascular surgery", jp:"心臓血管外科"},
+  {en:"cardiovascular surgeon", jp:"心臓血管外科医"},
+  {en:"respiratory medicine / pulmonology", jp:"呼吸器内科"},
+  {en:"pulmonologist", jp:"呼吸器内科医"},
+  {en:"gastroenterology", jp:"消化器内科"},
+  {en:"gastroenterologist", jp:"消化器内科医"},
+  {en:"endocrinology", jp:"内分泌科"},
+  {en:"endocrinologist", jp:"内分泌科医"},
+  {en:"psychiatry", jp:"精神科"},
+  {en:"psychiatrist", jp:"精神科医"},
+  {en:"nephrology", jp:"腎臓内科"},
+  {en:"nephrologist", jp:"腎臓内科医"},
+  {en:"urology", jp:"泌尿器科"},
+  {en:"urologist", jp:"泌尿器科医"},
+  {en:"gynecology", jp:"婦人科"},
+  {en:"gynecologist", jp:"婦人科医"},
+  {en:"obstetrics", jp:"産科"},
+  {en:"obstetrician", jp:"産科医"},
+  {en:"pediatrics", jp:"小児科"},
+  {en:"children's doctor / pediatrician", jp:"小児科医"},
+  {en:"ophthalmology", jp:"眼科"},
+  {en:"eye specialist / ophthalmologist", jp:"眼科医"},
+  {en:"ENT clinic / otorhinolaryngology", jp:"耳鼻咽喉科"},
+  {en:"ENT doctor / otorhinolaryngologist", jp:"耳鼻咽喉科医"},
+  {en:"dermatology", jp:"皮膚科"},
+  {en:"skin specialist / dermatologist", jp:"皮膚科医"},
+  {en:"forensic medicine", jp:"法医学"},
+  {en:"forensic pathologist", jp:"法医学医"},
+  {en:"pathology", jp:"病理学"},
+  {en:"pathologist", jp:"病理学医"},
+  {en:"radiology", jp:"放射線科"},
+  {en:"radiologist", jp:"放射線科医"},
+  {en:"anesthesiology", jp:"麻酔科"},
+  {en:"anesthesiologist", jp:"麻酔医"},
+  {en:"plastic surgery", jp:"形成外科"},
+  {en:"plastic surgeon", jp:"形成外科医"},
+  {en:"cosmetic surgery", jp:"美容外科"},
+  {en:"cosmetic surgeon", jp:"美容外科医"},
+  {en:"psychosomatic medicine", jp:"心療内科"},
+  {en:"psychosomaticist", jp:"心療内科医"},
+  {en:"dentistry", jp:"歯科"},
+  {en:"dentist", jp:"歯科医"},
+  {en:"oral surgery", jp:"口腔外科"},
+  {en:"oral surgeon", jp:"口腔外科医"},
+  {en:"orthodontics", jp:"矯正歯科"},
+  {en:"orthodontist", jp:"矯正歯科医"},
+  {en:"veterinary medicine", jp:"獣医学"},
+  {en:"veterinarian", jp:"獣医"},
+  {en:"hematology", jp:"血液内科"},
+  {en:"oncology", jp:"腫瘍内科"},
+  {en:"rheumatology", jp:"膠原病内科"},
+  {en:"immunology", jp:"免疫学"},
+  {en:"infectious disease", jp:"感染症学"},
+  {en:"epidemiology", jp:"疫学，流行病学"},
+  {en:"geriatrics", jp:"老人医学"},
+  {en:"serology", jp:"血清学"},
+  {en:"allergology", jp:"アレルギー学"},
+  {en:"anatomy", jp:"解剖学"},
+  {en:"physiology", jp:"生理学"},
+  {en:"pharmacology", jp:"薬理学"},
+  {en:"etiology", jp:"病因学"},
+  {en:"bacteriology", jp:"細菌学"},
+  {en:"microbiology", jp:"微生物学"},
+  {en:"virology", jp:"ウイルス学"},
+  {en:"maternal-fetal medicine (MFM) / perinatology", jp:"周産期医学"},
+  {en:"neonatology", jp:"新生児学"},
+  {en:"nurse", jp:"看護師"},
+  {en:"registered nurse (RN)", jp:"正看護師"},
+  {en:"licensed practical nurse (LPN)", jp:"准看護師"},
+  {en:"public (community) health nurse", jp:"保健師"},
+  {en:"nurse practitioner (NP)", jp:"ナースプラクティショナー"},
+  {en:"visiting nurse", jp:"訪問看護師"},
+  {en:"midwife", jp:"助産師"},
+  {en:"druggist / pharmacist", jp:"薬剤師"},
+  {en:"clinical psychologist", jp:"臨床心理士"},
+  {en:"speech therapist (ST)", jp:"言語療法士"},
+  {en:"physical therapist (PT)", jp:"理学療法士"},
+  {en:"occupational therapist (OT)", jp:"作業療法士"},
+  {en:"paramedic", jp:"救急救命士"},
+  {en:"emergency medical technician (EMT)", jp:"救急医療士"},
+  {en:"radiologic technologist", jp:"放射線技師"},
+  {en:"medical [lab] technologist / clinical laboratory technician", jp:"臨床検査技師"},
+  {en:"clinical engineer", jp:"臨床工学技師"},
+  {en:"orthoptist (ORT)", jp:"視能訓練士"},
+  {en:"dietitian / clinical nutritionist", jp:"臨床栄養士"},
+  {en:"certified care worker", jp:"介護福祉士"},
+  {en:"certified social worker", jp:"社会福祉士"},
+  {en:"dental hygienist", jp:"歯科衛生士"},
+  {en:"dental technician", jp:"歯科技工士"}
+];
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+
+function toggleMode() {
+  isEnglishMode = !isEnglishMode;
+  document.querySelector(".controls .btn").textContent =
+    isEnglishMode ? "🔁 英→日" : "🔁 日→英";
+  render(false);
+}
+
+function render(doShuffle) {
+  let list = [...words];
+  if (doShuffle) list = shuffle(list);
+
+  let html = "";
+
+  list.forEach(w => {
+    const q = isEnglishMode ? w.en : w.jp;
+    const a = isEnglishMode ? w.jp : w.en;
+    const speakText = w.en;
+
+    html += `
+      <li class="item">
+        <button class="speak-btn" onclick="event.stopPropagation(); speak('${speakText.replace(/'/g, "\\'")}')">🔊</button>
+        <span class="q">${q}</span>
+        <span class="a" onclick="this.classList.toggle('show')">${a}</span>
+      </li>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+render(false);
+</script>
+
+</body>
+</html>
