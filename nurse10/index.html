@@ -1,1 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy Quiz</title>
 
+<style>
+/* ===== 全体 ===== */
+#quiz {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* ===== 操作ボタン ===== */
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: none !important;
+  background: #1976d2 !important;
+  color: #fff !important;
+  font-weight: bold;
+  font-size: 0.9em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+.btn:nth-child(2) {
+  background: #43a047 !important;
+}
+
+.btn:nth-child(3) {
+  background: #757575 !important;
+}
+
+/* ===== リスト ===== */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+/* ===== カード ===== */
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ===== 問題 ===== */
+.q {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95em;
+  line-height: 1.35;
+}
+
+/* ===== 答え ===== */
+.a {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  min-height: 34px;
+
+  background: #444;
+  color: #444;
+  border-radius: 8px;
+
+  display: block;
+
+  font-size: 0.85em;
+  text-align: center;
+  line-height: 1.3;
+
+  padding: 6px 8px;
+  box-sizing: border-box;
+
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.a.show {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.a:hover {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* ===== 音声ボタン ===== */
+.speak-btn {
+  background: #eef2f7;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+</style>
+</head>
+
+<body>
+
+<div id="quiz">
+  <div class="controls">
+    <button class="btn" onclick="toggleMode()">🔁 英→日</button>
+    <button class="btn" onclick="render(true)">🔀 シャッフル</button>
+    <button class="btn" onclick="render(false)">標準順</button>
+  </div>
+
+  <ul id="list" class="list"></ul>
+</div>
+
+<script>
+let isEnglishMode = true;
+
+const words = [
+  {en:"[brain] concussion", jp:"脳震とう"},
+  {en:"coma", jp:"昏睡"},
+  {en:"lethargy", jp:"嗜眠"},
+  {en:"loss of consciousness", jp:"意識消失"},
+  {en:"confusion", jp:"錯乱[状態]"},
+  {en:"delirium", jp:"せん妄"},
+  {en:"mutism", jp:"無言症"},
+  {en:"seizure / fit / convulsion", jp:"[てんかんの]発作，ひきつけ，痙攣"},
+  {en:"numbness", jp:"しびれ，無感覚"},
+  {en:"paralysis", jp:"麻痺"},
+  {en:"shaking / tremor", jp:"振戦，震え"},
+  {en:"stomachache / gastralgia", jp:"胃痛"},
+  {en:"appetite loss / anorexia", jp:"食欲不振"},
+  {en:"indigestion / dyspepsia", jp:"消化不良"},
+  {en:"gastric dilation / gastrectasis", jp:"胃拡張"},
+  {en:"gastroptosis", jp:"胃下垂"},
+  {en:"stomach cramps / gastrospasm", jp:"胃痙攣"},
+  {en:"hyperacidity", jp:"胃酸過多症"},
+  {en:"heartburn", jp:"胸やけ"},
+  {en:"nausea", jp:"吐き気，悪心"},
+  {en:"vomiting / emesis", jp:"嘔吐"},
+  {en:"loose bowels / diarrhea", jp:"下痢"},
+  {en:"constipation", jp:"便秘"},
+  {en:"hematemesis", jp:"吐血"},
+  {en:"bloody stool (feces) / hematochezia", jp:"血便"},
+  {en:"dysphagia", jp:"嚥下困難[障害]"},
+  {en:"belch / burp", jp:"げっぷ，おくび"},
+  {en:"hiccup", jp:"しゃっくり"},
+  {en:"drooling", jp:"よだれ[を垂らす]"},
+  {en:"snore / snoring", jp:"いびき"},
+  {en:"toothache / odontalgia", jp:"歯痛"},
+  {en:"bad bite / malocclusion", jp:"不正咬合"},
+  {en:"anuria", jp:"無尿[症]"},
+  {en:"polyuria", jp:"多尿[症]"},
+  {en:"dysuria", jp:"排尿困難"},
+  {en:"bed-wetting / [nocturnal] enuresis", jp:"夜尿[症]"},
+  {en:"incontinence", jp:"失禁"},
+  {en:"bloody urine / hematuria", jp:"血尿"},
+  {en:"double vision / diplopia", jp:"複視"},
+  {en:"color blindness", jp:"色覚異常"},
+  {en:"buzzing / ringing / tinnitus", jp:"耳鳴り，耳鳴"},
+  {en:"earache / otalgia", jp:"耳痛"},
+  {en:"muscle pain / myalgia", jp:"筋肉痛"},
+  {en:"joint pain / arthralgia", jp:"関節痛"},
+  {en:"cramp[ing] / spasm", jp:"痙攣，[ひきつり]"},
+  {en:"stiffness", jp:"こわばり"},
+];
+
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+
+function toggleMode() {
+  isEnglishMode = !isEnglishMode;
+  document.querySelector(".controls .btn").textContent =
+    isEnglishMode ? "🔁 英→日" : "🔁 日→英";
+  render(false);
+}
+
+function render(doShuffle) {
+  let list = [...words];
+  if (doShuffle) list = shuffle(list);
+
+  let html = "";
+
+  list.forEach(w => {
+    const q = isEnglishMode ? w.en : w.jp;
+    const a = isEnglishMode ? w.jp : w.en;
+    const speakText = w.en;
+
+    html += `
+      <li class="item">
+        <button class="speak-btn" onclick="event.stopPropagation(); speak('${speakText.replace(/'/g, "\\'")}')">🔊</button>
+        <span class="q">${q}</span>
+        <span class="a" onclick="this.classList.toggle('show')">${a}</span>
+      </li>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+render(false);
+</script>
+
+</body>
+</html>
