@@ -1,1 +1,913 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy Quiz</title>
 
+<style>
+/* ===== 全体 ===== */
+#quiz {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* ===== 操作ボタン ===== */
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: none !important;
+  background: #1976d2 !important;
+  color: #fff !important;
+  font-weight: bold;
+  font-size: 0.9em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+.btn:nth-child(2) {
+  background: #43a047 !important;
+}
+
+.btn:nth-child(3) {
+  background: #757575 !important;
+}
+
+/* ===== リスト ===== */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+/* ===== カード ===== */
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ===== 問題 ===== */
+.q {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95em;
+  line-height: 1.35;
+}
+
+/* ===== 答え ===== */
+.a {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  min-height: 34px;
+
+  background: #444;
+  color: #444;
+  border-radius: 8px;
+
+  display: block;
+
+  font-size: 0.85em;
+  text-align: center;
+  line-height: 1.3;
+
+  padding: 6px 8px;
+  box-sizing: border-box;
+
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.a.show {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.a:hover {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* ===== 音声ボタン ===== */
+.speak-btn {
+  background: #eef2f7;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+</style>
+</head>
+
+<body>
+
+<div id="quiz">
+  <div class="controls">
+    <button class="btn" onclick="toggleMode()">🔁 英→日</button>
+    <button class="btn" onclick="render(true)">🔀 シャッフル</button>
+    <button class="btn" onclick="render(false)">標準順</button>
+  </div>
+
+  <ul id="list" class="list"></ul>
+</div>
+
+<script>
+let isEnglishMode = true;
+
+const words = [
+  {en:"head", jp:"頭[部]"},
+  {en:"temple", jp:"こめかみ"},
+  {en:"hair", jp:"頭髪，毛"},
+  {en:"scalp", jp:"頭皮"},
+  {en:"forehead", jp:"額，前額"},
+  {en:"face", jp:"顔"},
+  {en:"eyebrow", jp:"眉[毛]"},
+  {en:"glabella", jp:"眉間"},
+  {en:"eyelid / palpebra", jp:"まぶた，眼瞼"},
+  {en:"eyelash / cilium", jp:"まつ毛，睫毛"},
+  {en:"eye", jp:"眼"},
+  {en:"pupil", jp:"瞳孔"},
+  {en:"dimple", jp:"えくぼ，くぼみ"},
+  {en:"cheek", jp:"頬"},
+  {en:"mole / lentigo", jp:"黒子"},
+  {en:"ear", jp:"耳"},
+  {en:"nose", jp:"鼻"},
+  {en:"nostril / naris", jp:"鼻孔"},
+  {en:"mouth", jp:"口"},
+  {en:"gum / gingiva", jp:"歯肉"},
+  {en:"lip", jp:"唇，口唇"},
+  {en:"tooth", jp:"歯"},
+  {en:"tongue", jp:"舌"},
+  {en:"jaw", jp:"顎"},
+  {en:"chin", jp:"おとがい，あご先"},
+  {en:"mustache", jp:"口ひげ"},
+  {en:"beard", jp:"あごひげ"},
+  {en:"throat", jp:"喉"},
+  {en:"Adam's apple / laryngeal prominence", jp:"喉仏，喉頭隆起"},
+  {en:"neck", jp:"首，頸部"},
+  {en:"nape / nucha", jp:"うなじ"},
+  {en:"trunk", jp:"体幹"},
+  {en:"shoulder", jp:"肩"},
+  {en:"armpit / axilla", jp:"腋窩，わきの下"},
+  {en:"chest / thorax", jp:"胸部"},
+  {en:"breast", jp:"乳房"},
+  {en:"nipple", jp:"乳頭，乳首"},
+  {en:"belly / abdomen", jp:"腹部"},
+  {en:"side / flank", jp:"脇腹，側腹部"},
+  {en:"waist", jp:"ウエスト，腰"},
+  {en:"navel / umbilicus", jp:"へそ"},
+  {en:"groin", jp:"鼠径部"},
+  {en:"back / dorsum", jp:"背中，背部"},
+  {en:"buttocks", jp:"臀部"},
+  {en:"genitals", jp:"生殖器"},
+  {en:"limb / extremity", jp:"四肢，手足"},
+  {en:"arm", jp:"腕"},
+  {en:"upper arm / brachium", jp:"上腕"},
+  {en:"forearm / antebrachium", jp:"前腕"},
+  {en:"elbow", jp:"肘"},
+  {en:"hand", jp:"手"},
+  {en:"wrist", jp:"手首"},
+  {en:"palm", jp:"手のひら，手掌"},
+  {en:"finger", jp:"指"},
+  {en:"thumb", jp:"親指，拇指"},
+  {en:"index finger", jp:"人差し指，示指"},
+  {en:"middle finger", jp:"中指"},
+  {en:"ring finger", jp:"薬指，環指"},
+  {en:"little finger", jp:"小指"},
+  {en:"nail", jp:"爪"},
+  {en:"fingerprint", jp:"指紋"},
+  {en:"leg", jp:"脚"},
+  {en:"foot", jp:"足"},
+  {en:"thigh / femur", jp:"ふともも，大腿"},
+  {en:"knee", jp:"膝"},
+  {en:"shin", jp:"脛"},
+  {en:"calf", jp:"ふくらはぎ，下腿"},
+  {en:"ankle", jp:"足首，足関"},
+  {en:"toe", jp:"足指"},
+  {en:"heel", jp:"かかと"},
+  {en:"instep", jp:"足の甲"},
+  {en:"arch [of the foot]", jp:"土踏まず"},
+  {en:"sole", jp:"足底"}
+  {en:"bone", jp:"骨"},
+  {en:"cartilage", jp:"軟骨"},
+  {en:"joint", jp:"関節"},
+  {en:"ligament", jp:"靱帯"},
+  {en:"tendon", jp:"腱"},
+  {en:"muscle", jp:"筋肉"},
+  {en:"skull / cranium", jp:"頭蓋[骨]"},
+  {en:"cheekbone / zygomatic bone", jp:"頬骨"},
+  {en:"upper jaw / maxilla", jp:"上顎骨"},
+  {en:"lower jaw / mandible", jp:"下顎骨"},
+  {en:"hyoid bone", jp:"舌骨"},
+  {en:"collarbone / clavicle", jp:"鎖骨"},
+  {en:"rib / costa", jp:"肋骨"},
+  {en:"pelvis", jp:"骨盤"},
+  {en:"sacrum", jp:"仙骨"},
+  {en:"hip bone / coxal bone", jp:"寛骨"},
+  {en:"iliac bone / ilium", jp:"腸骨"},
+  {en:"ischium", jp:"坐骨"},
+  {en:"pubic bone / pubis", jp:"恥骨"},
+  {en:"coccyx", jp:"尾骨"},
+  {en:"spinal column / vertebral column", jp:"脊柱"},
+  {en:"backbone / spine", jp:"背骨，脊椎"},
+  {en:"cervical vertebrae", jp:"頸椎"},
+  {en:"shoulder blade / scapula", jp:"肩甲骨"},
+  {en:"acromion", jp:"肩峰"},
+  {en:"breastbone / sternum", jp:"胸骨"},
+  {en:"thoracic vertebrae", jp:"胸椎"},
+  {en:"lumbar vertebrae", jp:"腰椎"},
+  {en:"humerus", jp:"上腕骨"},
+  {en:"radius", jp:"橈骨"},
+  {en:"ulna", jp:"尺骨"},
+  {en:"carpal bone", jp:"手根骨"},
+  {en:"metacarpal bone", jp:"中手骨"},
+  {en:"thighbone / femur", jp:"大腿骨"},
+  {en:"kneecap / patella", jp:"膝蓋骨"},
+  {en:"fibula", jp:"腓骨"},
+  {en:"shin bone / tibia", jp:"脛骨"},
+  {en:"tarsal bone", jp:"足根骨"},
+  {en:"heel bone / calcaneus", jp:"踵骨"},
+  {en:"ankle bone / talus", jp:"距骨"},
+  {en:"metatarsal bone", jp:"中足骨"},
+  {en:"phalange", jp:"指骨"},
+  {en:"knuckle / metacarpophalangeal joint", jp:"中手指節関節"},
+  {en:"interphalangeal joint", jp:"指節間関節"},
+  {en:"anterior cruciate ligament", jp:"前十字靱帯"},
+  {en:"meniscus", jp:"半月板"},
+  {en:"Achilles tendon", jp:"アキレス腱"},
+  {en:"trapezius", jp:"僧帽筋"},
+  {en:"deltoid", jp:"三角筋"},
+  {en:"pectoralis major", jp:"大胸筋"},
+  {en:"biceps brachii", jp:"上腕二頭筋"},
+  {en:"triceps brachii", jp:"上腕三頭筋"},
+  {en:"latissimus dorsi", jp:"広背筋"},
+  {en:"abs / abdominal muscles", jp:"腹筋"},
+  {en:"gluteus maximus", jp:"大臀筋"},
+  {en:"psoas", jp:"腸筋"},
+  {en:"quadriceps femoris", jp:"大腿四頭筋"},
+  {en:"gastrocnemius", jp:"腓腹筋"},
+  {en:"soleus", jp:"ヒラメ筋"},
+  {en:"brain / encephalon", jp:"脳"},
+  {en:"cerebrum", jp:"大脳"},
+  {en:"cerebellum", jp:"小脳"},
+  {en:"brainstem", jp:"脳幹"},
+  {en:"midbrain / mesencephalon", jp:"中脳"},
+  {en:"pons", jp:"橋"},
+  {en:"medulla oblongata", jp:"延髄"},
+  {en:"diencephalon", jp:"間脳"},
+  {en:"thalamus", jp:"視床"},
+  {en:"hypothalamus", jp:"視床下部"},
+  {en:"pineal gland", jp:"松果体"},
+  {en:"pituitary gland", jp:"下垂体"},
+  {en:"hippocampus", jp:"海馬"},
+  {en:"spinal cord", jp:"脊髄"},
+  {en:"meninx (pl. meninges)", jp:"髄膜"},
+  {en:"dura mater", jp:"硬膜"},
+  {en:"arachnoid mater", jp:"クモ膜"},
+  {en:"pia mater", jp:"軟膜"},
+  {en:"cerebrospinal fluid (CSF)", jp:"脳脊髄液"},
+  {en:"eyeball", jp:"眼球"},
+  {en:"conjunctiva", jp:"結膜"},
+  {en:"cornea", jp:"角膜"},
+  {en:"uvea", jp:"ぶどう膜"},
+  {en:"iris", jp:"虹彩"},
+  {en:"ciliary body", jp:"毛様体"},
+  {en:"choroid", jp:"脈絡膜"},
+  {en:"pupil", jp:"瞳孔"},
+  {en:"crystalline lens", jp:"水晶体"},
+  {en:"retina", jp:"網膜"},
+  {en:"vitreous body", jp:"硝子体"},
+  {en:"sclera", jp:"強膜"},
+  {en:"external ear", jp:"外耳"},
+  {en:"auricle", jp:"耳介"},
+  {en:"earlobe / lobule", jp:"耳たぶ・耳垂"},
+  {en:"external auditory canal", jp:"外耳道"},
+  {en:"eardrum / tympanic membrane", jp:"鼓膜"},
+  {en:"middle ear", jp:"中耳"},
+  {en:"Eustachian tube", jp:"耳管"},
+  {en:"inner ear", jp:"内耳"},
+  {en:"cochlea", jp:"蝸牛"},
+  {en:"semicircular canals", jp:"三半規管"},
+  {en:"heart", jp:"心臓"},
+  {en:"pericardium", jp:"心膜"},
+  {en:"epicardium", jp:"心外膜"},
+  {en:"myocardium", jp:"心筋層"},
+  {en:"endocardium", jp:"心内膜"},
+  {en:"left atrium", jp:"左心房"},
+  {en:"left ventricle", jp:"左心室"},
+  {en:"right atrium", jp:"右心房"},
+  {en:"right ventricle", jp:"右心室"},
+  {en:"tricuspid valve", jp:"三尖弁"},
+  {en:"mitral valve", jp:"僧帽弁"},
+  {en:"aortic valve", jp:"大動脈弁"},
+  {en:"pulmonary valve", jp:"肺動脈弁"},
+  {en:"aortic arch", jp:"大動脈弓"},
+  {en:"interventricular septum", jp:"心室中隔"},
+  {en:"aorta", jp:"大動脈"},
+  {en:"pulmonary artery", jp:"肺動脈"},
+  {en:"pulmonary vein", jp:"肺静脈"},
+  {en:"coronary artery", jp:"冠［状］動脈"},
+  {en:"superior vena cava", jp:"上大静脈"},
+  {en:"inferior vena cava", jp:"下大静脈"},
+  {en:"blood vessel", jp:"血管"},
+  {en:"vein", jp:"静脈"},
+  {en:"artery", jp:"動脈"},
+  {en:"capillary", jp:"毛細血管"},
+  {en:"lymph", jp:"リンパ"},
+  {en:"lymph node", jp:"リンパ節"},
+  {en:"bone marrow", jp:"骨髄"},
+  {en:"red blood cell / erythrocyte", jp:"赤血球"},
+  {en:"white blood cell / leukocyte", jp:"白血球"},
+  {en:"neutrophil", jp:"好中球"},
+  {en:"basophil", jp:"好塩基球"},
+  {en:"eosinophil", jp:"好酸球"},
+  {en:"lymphocyte", jp:"リンパ球"},
+  {en:"monocyte", jp:"単球"},
+  {en:"platelet / thrombocyte", jp:"血小板"},
+  {en:"blood plasma", jp:"血漿"},
+  {en:"serum", jp:"血清"}
+  {en:"nasal cavity", jp:"鼻腔"},
+　{en:"nasal cavity", jp:"鼻腔"},
+  {en:"nasal cavity", jp:"鼻腔"},
+  {en:"nasal cavity", jp:"鼻腔"},
+  {en:"nasal cavity", jp:"鼻腔"},
+  {en:"oral cavity", jp:"口腔"},
+  {en:"hard palate", jp:"硬口蓋"},
+  {en:"soft palate", jp:"軟口蓋"},
+  {en:"uvula", jp:"口蓋垂"},
+  {en:"larynx", jp:"喉頭"},
+  {en:"thyroid gland", jp:"甲状腺"},
+  {en:"vocal cords", jp:"声帯"},
+  {en:"glottis", jp:"声門"},
+  {en:"epiglottis", jp:"喉頭蓋"},
+  {en:"windpipe / trachea", jp:"気管"},
+  {en:"bronchus (pl. bronchi)", jp:"気管支"},
+  {en:"bronchiole", jp:"細気管支"},
+  {en:"alveolus (pl. alveoli)", jp:"肺胞"},
+  {en:"lung", jp:"肺"},
+  {en:"diaphragm", jp:"横隔膜"},
+  {en:"pharynx", jp:"咽頭"},
+  {en:"esophagus", jp:"食道"},
+  {en:"stomach", jp:"胃"},
+  {en:"cardia", jp:"噴門"},
+  {en:"pylorus", jp:"幽門"},
+  {en:"small intestine", jp:"小腸"},
+  {en:"duodenum", jp:"十二指腸"},
+  {en:"jejunum", jp:"空腸"},
+  {en:"ileum", jp:"回腸"},
+  {en:"large intestine", jp:"大腸"},
+  {en:"colon", jp:"結腸"},
+  {en:"ascending colon", jp:"上行結腸"},
+  {en:"transverse colon", jp:"横行結腸"},
+  {en:"descending colon", jp:"下行結腸"},
+  {en:"sigmoid colon", jp:"S状結腸"},
+  {en:"cecum", jp:"盲腸"},
+  {en:"appendix", jp:"虫垂"},
+  {en:"rectum", jp:"直腸"},
+  {en:"anus", jp:"肛門"},
+  {en:"liver", jp:"肝臓"},
+  {en:"gallbladder", jp:"胆嚢"},
+  {en:"bile duct", jp:"胆管"},
+  {en:"pancreas", jp:"膵臓"},
+  {en:"spleen", jp:"脾臓"},
+  {en:"gut / bowel / intestine", jp:"腸，消化管"},
+  {en:"kidney", jp:"腎臓"},
+  {en:"adrenal gland", jp:"副腎"},
+  {en:"ureter", jp:"尿管"},
+  {en:"urinary bladder", jp:"膀胱"},
+  {en:"urethra", jp:"尿道"},
+  {en:"seminal vesicle", jp:"精嚢"},
+  {en:"prostate gland", jp:"前立腺"},
+  {en:"penis", jp:"陰茎"},
+  {en:"testis", jp:"精巣"},
+  {en:"sperm", jp:"精子"},
+  {en:"ovary", jp:"卵巣"},
+  {en:"ovum", jp:"卵，卵子"},
+  {en:"fallopian tube", jp:"卵管"},
+  {en:"womb / uterus", jp:"子宮"},
+  {en:"uterine cervix", jp:"子宮頸部"},
+  {en:"corpus uteri", jp:"子宮体部"},
+  {en:"endometrium", jp:"子宮内膜"},
+  {en:"perimetrium", jp:"子宮外膜"},
+  {en:"myometrium", jp:"子宮筋層"},
+  {en:"vagina", jp:"膣"},
+  {en:"placenta", jp:"胎盤"},
+  {en:"umbilical cord", jp:"臍帯"},
+  {en:"amnion", jp:"羊膜"},
+  {en:"amniotic fluid", jp:"羊水"},
+  {en:"diet therapy", jp:"食事療法"},
+  {en:"symptomatic therapy", jp:"対症療法"},
+  {en:"chemotherapy", jp:"化学療法"},
+  {en:"radiotherapy / radiation therapy", jp:"放射線治療"},
+  {en:"palliative therapy", jp:"緩和療法"},
+  {en:"immunotherapy", jp:"免疫療法"},
+  {en:"pharmacotherapy", jp:"薬物療法"},
+  {en:"psychotherapy", jp:"心理療法"},
+  {en:"physical therapy", jp:"理学療法"},
+  {en:"occupational therapy", jp:"作業療法"},
+  {en:"alternative medicine", jp:"代替医療"}
+  {en:"medicine", jp:"医学"},
+  {en:"doctor / physician", jp:"医師"},
+  {en:"resident", jp:"研修医"},
+  {en:"emergency medicine", jp:"救急医学"},
+  {en:"preventive medicine", jp:"予防医学"},
+  {en:"internal medicine", jp:"内科"},
+  {en:"internist", jp:"内科医"},
+  {en:"general internal medicine", jp:"総合診療科"},
+  {en:"general practitioner / general physician", jp:"総合診療医，一般開業医"},
+  {en:"surgery", jp:"外科"},
+  {en:"surgeon", jp:"外科医"},
+  {en:"orthopedics", jp:"整形外科"},
+  {en:"orthopedist", jp:"整形外科医"},
+  {en:"neurology", jp:"神経内科"},
+  {en:"brain specialist / neurologist", jp:"神経内科医"},
+  {en:"neurosurgery", jp:"脳神経外科"},
+  {en:"neurosurgeon", jp:"脳神経外科医"},
+  {en:"cardiology", jp:"循環器内科"},
+  {en:"cardiologist", jp:"循環器内科医"},
+  {en:"cardiovascular surgery", jp:"心臓血管外科"},
+  {en:"cardiovascular surgeon", jp:"心臓血管外科医"},
+  {en:"respiratory medicine / pulmonology", jp:"呼吸器内科"},
+  {en:"pulmonologist", jp:"呼吸器内科医"},
+  {en:"gastroenterology", jp:"消化器内科"},
+  {en:"gastroenterologist", jp:"消化器内科医"},
+  {en:"endocrinology", jp:"内分泌科"},
+  {en:"endocrinologist", jp:"内分泌科医"},
+  {en:"psychiatry", jp:"精神科"},
+  {en:"psychiatrist", jp:"精神科医"},
+  {en:"nephrology", jp:"腎臓内科"},
+  {en:"nephrologist", jp:"腎臓内科医"},
+  {en:"urology", jp:"泌尿器科"},
+  {en:"urologist", jp:"泌尿器科医"},
+  {en:"gynecology", jp:"婦人科"},
+  {en:"gynecologist", jp:"婦人科医"},
+  {en:"obstetrics", jp:"産科"},
+  {en:"obstetrician", jp:"産科医"},
+  {en:"pediatrics", jp:"小児科"},
+  {en:"children's doctor / pediatrician", jp:"小児科医"},
+  {en:"ophthalmology", jp:"眼科"},
+  {en:"eye specialist / ophthalmologist", jp:"眼科医"},
+  {en:"ENT clinic / otorhinolaryngology", jp:"耳鼻咽喉科"},
+  {en:"ENT doctor / otorhinolaryngologist", jp:"耳鼻咽喉科医"},
+  {en:"dermatology", jp:"皮膚科"},
+  {en:"skin specialist / dermatologist", jp:"皮膚科医"},
+  {en:"forensic medicine", jp:"法医学"},
+  {en:"forensic pathologist", jp:"法医学医"},
+  {en:"pathology", jp:"病理学"},
+  {en:"pathologist", jp:"病理学医"},
+  {en:"radiology", jp:"放射線科"},
+  {en:"radiologist", jp:"放射線科医"},
+  {en:"anesthesiology", jp:"麻酔科"},
+  {en:"anesthesiologist", jp:"麻酔医"},
+  {en:"plastic surgery", jp:"形成外科"},
+  {en:"plastic surgeon", jp:"形成外科医"},
+  {en:"cosmetic surgery", jp:"美容外科"},
+  {en:"cosmetic surgeon", jp:"美容外科医"},
+  {en:"psychosomatic medicine", jp:"心療内科"},
+  {en:"psychosomaticist", jp:"心療内科医"},
+  {en:"dentistry", jp:"歯科"},
+  {en:"dentist", jp:"歯科医"},
+  {en:"oral surgery", jp:"口腔外科"},
+  {en:"oral surgeon", jp:"口腔外科医"},
+  {en:"orthodontics", jp:"矯正歯科"},
+  {en:"orthodontist", jp:"矯正歯科医"},
+  {en:"veterinary medicine", jp:"獣医学"},
+  {en:"veterinarian", jp:"獣医"},
+  {en:"hematology", jp:"血液内科"},
+  {en:"oncology", jp:"腫瘍内科"},
+  {en:"rheumatology", jp:"膠原病内科"},
+  {en:"immunology", jp:"免疫学"},
+  {en:"infectious disease", jp:"感染症学"},
+  {en:"epidemiology", jp:"疫学，流行病学"},
+  {en:"geriatrics", jp:"老人医学"},
+  {en:"serology", jp:"血清学"},
+  {en:"allergology", jp:"アレルギー学"},
+  {en:"anatomy", jp:"解剖学"},
+  {en:"physiology", jp:"生理学"},
+  {en:"pharmacology", jp:"薬理学"},
+  {en:"etiology", jp:"病因学"},
+  {en:"bacteriology", jp:"細菌学"},
+  {en:"microbiology", jp:"微生物学"},
+  {en:"virology", jp:"ウイルス学"},
+  {en:"maternal-fetal medicine (MFM) / perinatology", jp:"周産期医学"},
+  {en:"neonatology", jp:"新生児学"},
+  {en:"nurse", jp:"看護師"},
+  {en:"registered nurse (RN)", jp:"正看護師"},
+  {en:"licensed practical nurse (LPN)", jp:"准看護師"},
+  {en:"public health nurse", jp:"保健師"},
+  {en:"nurse practitioner (NP)", jp:"ナースプラクティショナー"},
+  {en:"visiting nurse", jp:"訪問看護師"},
+  {en:"midwife", jp:"助産師"},
+  {en:"scrub nurse", jp:"器械出し看護師"},
+  {en:"druggist / pharmacist", jp:"薬剤師"},
+  {en:"clinical psychologist", jp:"臨床心理士"},
+  {en:"speech therapist (ST)", jp:"言語療法士"},
+  {en:"physical therapist (PT)", jp:"理学療法士"},
+  {en:"occupational therapist (OT)", jp:"作業療法士"},
+  {en:"paramedic", jp:"救急救命士"},
+  {en:"emergency medical technician (EMT)", jp:"救急医療士"},
+  {en:"radiologic technologist", jp:"放射線技師"},
+  {en:"medical [lab] technologist / clinical laboratory technician", jp:"臨床検査技師"},
+  {en:"clinical engineer", jp:"臨床工学技師"},
+  {en:"orthoptist (ORT)", jp:"視能訓練士"},
+  {en:"dietitian / clinical nutritionist", jp:"臨床栄養士"},
+  {en:"certified care worker", jp:"介護福祉士"},
+  {en:"certified social worker", jp:"社会福祉士"},
+  {en:"dental hygienist", jp:"歯科衛生士"},
+  {en:"dental technician", jp:"歯科技工士"}
+  {en:"[medical] check-up", jp:"健診，定期検査"},
+  {en:"congenital", jp:"先天性の"},
+  {en:"acquired", jp:"後天性の"},
+  {en:"acute", jp:"急性の"},
+  {en:"chronic", jp:"慢性の"},
+  {en:"progressive", jp:"進行性の"},
+  {en:"progression", jp:"進行"},
+  {en:"benign", jp:"良性の"},
+  {en:"malignant", jp:"悪性の"},
+  {en:"infectious", jp:"感染性の"},
+  {en:"contagious", jp:"[接触]感染性の"},
+  {en:"degenerative", jp:"変性の"},
+  {en:"drug-induced", jp:"薬剤[誘発]性の"},
+  {en:"fatal", jp:"致死[的]な"},
+  {en:"intractable", jp:"難治性の"},
+  {en:"invasive", jp:"侵襲性の"},
+  {en:"localized", jp:"限局性の"},
+  {en:"palliative", jp:"緩和的な"},
+  {en:"transient", jp:"一過性の"},
+  {en:"bilateral", jp:"両側性の"},
+  {en:"unilateral", jp:"片側性の"},
+  {en:"asymptomatic", jp:"無症状の"},
+  {en:"febrile", jp:"発熱[性]の"},
+  {en:"intermittent", jp:"間欠性の"},
+  {en:"purulent", jp:"膿性の"},
+  {en:"administer", jp:"[薬などを]投与する"},
+  {en:"alleviate", jp:"緩和(軽減)する"},
+  {en:"diagnose", jp:"診断する"},
+  {en:"diagnosis", jp:"診断"},
+  {en:"suffer from", jp:"～に罹患する"},
+  {en:"consent", jp:"同意，承認"},
+  {en:"referral", jp:"紹介[状]"},
+  {en:"admission / hospitalization", jp:"入院"},
+  {en:"discharge", jp:"退院"},
+  {en:"ward", jp:"病棟"},
+  {en:"intensive care unit (ICU)", jp:"集中治療室"},
+  {en:"emergency room (ER)", jp:"救急処置室"},
+  {en:"operating room (OR)", jp:"手術室"},
+  {en:"inpatient", jp:"入院患者"},
+  {en:"outpatient", jp:"外来患者"},
+  {en:"medical record / chart", jp:"カルテ，診療記録"},
+  {en:"prescription", jp:"処方[箋]"},
+  {en:"malpractice", jp:"医療過誤"},
+  {en:"medical certificate", jp:"診断書"},
+  {en:"vital signs", jp:"バイタルサイン，生命徴候"},
+  {en:"blood pressure", jp:"血圧"},
+  {en:"pulse rate", jp:"脈拍数"},
+  {en:"respiratory rate", jp:"呼吸数"},
+  {en:"body temperature", jp:"体温"},
+  {en:"inhale / inspire", jp:"[息を]吸う"},
+  {en:"exhale / expire", jp:"[息を]吐く"},
+  {en:"circulation", jp:"循環"},
+  {en:"digestion", jp:"消化"},
+  {en:"excretion", jp:"排泄"},
+  {en:"metabolism", jp:"代謝"},
+  {en:"dose", jp:"1回投与，服用量"},
+  {en:"saline / solution", jp:"生理食塩水"},
+  {en:"infusion", jp:"輸液，点滴[液]"},
+  {en:"transfusion", jp:"輸血"},
+  {en:"hemostasis", jp:"止血"},
+  {en:"intravenous", jp:"静脈内の，静脈注射[用]の"},
+  {en:"intubation", jp:"挿管"},
+  {en:"side effect", jp:"副作用"},
+  {en:"culture", jp:"培養"},
+  {en:"tolerance", jp:"耐症"},
+  {en:"resistance", jp:"耐症"},
+  {en:"bacteria", jp:"細菌"},
+  {en:"virus", jp:"ウイルス"},
+  {en:"coccus (pl. cocci)", jp:"球菌"},
+  {en:"staphylococcus", jp:"ブドウ球菌"},
+  {en:"streptococcus", jp:"レンサ球菌"},
+  {en:"bacillus (pl. bacilli)", jp:"桿菌"},
+  {en:"incision", jp:"切開[術]"},
+  {en:"resection", jp:"切除[術]"},
+  {en:"transplantation", jp:"移植[術]"},
+  {en:"resuscitation", jp:"蘇生[法]"},
+  {en:"suture", jp:"縫合，縫合糸"},
+  {en:"prone position", jp:"伏臥位"},
+  {en:"supine position", jp:"仰臥位"},
+  {en:"intervention", jp:"[治療的]介入"}
+  {en:"ailment", jp:"[慢性の軽い]病気"},
+  {en:"trauma", jp:"外傷，傷害，損傷"},
+  {en:"onset", jp:"発症，発現"},
+  {en:"lesion", jp:"病変，病巣"},
+  {en:"inflammation", jp:"炎症"},
+  {en:"necrosis", jp:"壊死"},
+  {en:"obstruction", jp:"閉塞[症]"},
+  {en:"clot[ting] / coagulation", jp:"凝固[作用]"},
+  {en:"accumulation", jp:"蓄積"},
+  {en:"dysfunction", jp:"機能障害，機能不全"},
+  {en:"deficiency", jp:"欠乏[症]"},
+  {en:"deterioration", jp:"悪化，退行"},
+  {en:"exacerbation / flare-up", jp:"増悪"},
+  {en:"relapse", jp:"再発"},
+  {en:"remission", jp:"寛解"},
+  {en:"prognosis", jp:"[病気の]予後"},
+  {en:"complication", jp:"合併症"},
+  {en:"sequela", jp:"後遺症"},
+  {en:"prevalence", jp:"有病率"},
+  {en:"incidence", jp:"発生[数，率]"},
+  {en:"mortality [rate]", jp:"死亡[率]"},
+  {en:"life expectancy", jp:"平均余命"},
+  {en:"pandemic", jp:"パンデミック，感染症の全世界的流行"},
+  {en:"tumor", jp:"腫瘍，腫瘤"},
+  {en:"neoplasm", jp:"新生物，腫瘍"},
+  {en:"metastasis", jp:"転移"},
+  {en:"carcinogen", jp:"発がん物質"},
+  {en:"vaccination / immunization", jp:"予防接種"},
+  {en:"vaccine", jp:"ワクチン"},
+  {en:"antibody", jp:"抗体"},
+  {en:"immunity", jp:"免疫[力]"},
+  {en:"infection", jp:"感染[症]"},
+  {en:"hemolysis", jp:"溶血"},
+  {en:"tick", jp:"マダニ"},
+  {en:"mite", jp:"ダニ"},
+  {en:"lice", jp:"シラミ"},
+  {en:"flea", jp:"ノミ"},
+  {en:"mosquito", jp:"蚊"},
+  {en:"cell", jp:"細胞"},
+  {en:"gene", jp:"遺伝子"},
+  {en:"genetic", jp:"遺伝[子]の"},
+  {en:"variant", jp:"変異体"},
+  {en:"tissue", jp:"組織"},
+  {en:"membrane", jp:"膜"},
+  {en:"fluid", jp:"液体，体液"},
+  {en:"secretion", jp:"分泌[物]"},
+  {en:"mucus", jp:"粘液"},
+  {en:"saliva", jp:"唾液"},
+  {en:"hormone", jp:"ホルモン"},
+  {en:"fat / lipid", jp:"脂肪"},
+  {en:"visceral adipose", jp:"内臓脂肪"},
+  {en:"pee / urine", jp:"尿"},
+  {en:"urinate", jp:"排尿する"},
+  {en:"feces / stool", jp:"大便"},
+  {en:"bowel movement / defecation", jp:"排便，便通"},
+  {en:"defecate", jp:"排便する"},
+  {en:"nerve", jp:"神経"},
+  {en:"reflex", jp:"反射"},
+  {en:"central nervous system (CNS)", jp:"中枢神経系"},
+  {en:"peripheral nervous system (PNS)", jp:"末梢神経系"},
+  {en:"sympathetic nerve", jp:"交感神経"},
+  {en:"parasympathetic nerve", jp:"副交感神経"},
+  {en:"olfactory nerve", jp:"嗅神経"},
+  {en:"optic nerve", jp:"視神経"},
+  {en:"trigeminal nerve", jp:"三叉神経"},
+  {en:"embryo", jp:"胚子，胎芽（8週末まで）"},
+  {en:"fetus", jp:"胎児（8週末以降）"},
+  {en:"newborn [baby] / neonate", jp:"新生児"},
+  {en:"infant", jp:"乳児（生後1年まで）"},
+  {en:"preschooler", jp:"幼児（就学前の小児）"},
+  {en:"malnutrition", jp:"低栄養"},
+  {en:"obesity", jp:"肥満[症]"},
+  {en:"addiction", jp:"依存症，中毒"},
+  {en:"intoxication", jp:"中毒"},
+  {en:"toxic", jp:"有毒な"},
+  {en:"cadaver", jp:"死体"},
+  {en:"empathy", jp:"共感，感情移入"}
+  {en:"stethoscope", jp:"聴診器"},
+  {en:"thermometer", jp:"体温計"},
+  {en:"sphygmomanometer", jp:"血圧計"},
+  {en:"pulse oximeter", jp:"経皮的動脈血酸素飽和度測定器"},
+  {en:"scale", jp:"体重計"},
+  {en:"dynamometer", jp:"握力計"},
+  {en:"otoscope", jp:"耳鏡"},
+  {en:"rhinoscope", jp:"鼻鏡"},
+  {en:"tongue depressor", jp:"舌圧子"},
+  {en:"plexor", jp:"打診器（腱反射ハンマー）"},
+  {en:"ophthalmoscope", jp:"検眼鏡"},
+  {en:"microscope", jp:"顕微鏡"},
+  {en:"ambulance", jp:"救急車"},
+  {en:"stretcher", jp:"担架"},
+  {en:"gurney", jp:"車輪付き担架"},
+  {en:"defibrillator", jp:"除細動器"},
+  {en:"automated external defibrillator (AED)", jp:"自動体外式除細動器"},
+  {en:"pacemaker", jp:"ペースメーカー"},
+  {en:"respirator / ventilator", jp:"人工呼吸器"},
+  {en:"inhaler", jp:"吸入器"},
+  {en:"nebulizer", jp:"噴霧器，ネブライザー"},
+  {en:"injector / syringe", jp:"注射器"},
+  {en:"needle", jp:"注射針"},
+  {en:"tourniquet", jp:"止血帯，駆血帯"},
+  {en:"cannula", jp:"カニューレ"},
+  {en:"catheter", jp:"カテーテル"},
+  {en:"drain", jp:"ドレーン管，排液管"},
+  {en:"surgical knife / scalpel", jp:"メス"},
+  {en:"bovie", jp:"電気メス"},
+  {en:"[surgical] stitches / [surgical] suture", jp:"縫合糸（縫合）"},
+  {en:"surgical stapler", jp:"外科用ステープラー"},
+  {en:"irrigator", jp:"潅注（洗浄）器"},
+  {en:"forceps", jp:"鉗子"},
+  {en:"surgical clamp", jp:"止血鉗子"},
+  {en:"retractor", jp:"開創器"},
+  {en:"tweezers", jp:"ピンセット"},
+  {en:"kidney dish", jp:"膿盆"},
+  {en:"absorbent cotton", jp:"脱脂綿"},
+  {en:"gauze", jp:"ガーゼ"},
+  {en:"bandage", jp:"包帯"},
+  {en:"patch / adhesive bandage", jp:"絆創膏"},
+  {en:"cotton swab / applicator", jp:"綿棒"},
+  {en:"wheelchair", jp:"車いす"},
+  {en:"walker", jp:"歩行器"},
+  {en:"crutch", jp:"松葉杖"},
+  {en:"cane", jp:"杖"},
+  {en:"cast", jp:"ギプス"},
+  {en:"splint", jp:"シーネ"},
+  {en:"brace / orthosis", jp:"装具"},
+  {en:"urinal", jp:"尿瓶，シビン"},
+  {en:"bedpan", jp:"差し込み便器"},
+  {en:"commode", jp:"室内便器"},
+  {en:"diaper", jp:"おむつ"},
+  {en:"incubator", jp:"保育器"},
+  {en:"stroller", jp:"ベビーカー"},
+  {en:"humidifier", jp:"加湿器"},
+  {en:"hearing aid", jp:"補聴器"}
+  {en:"[medical] check-up", jp:"健診，定期検査"},
+  {en:"detailed examination", jp:"精密検査"},
+  {en:"medical interview", jp:"医療面接，問診"},
+  {en:"chief complaint", jp:"主訴"},
+  {en:"symptom", jp:"症状"},
+  {en:"sign", jp:"兆候"},
+  {en:"differential diagnosis", jp:"鑑別診断"},
+  {en:"inspection", jp:"視診"},
+  {en:"auscultation", jp:"聴診"},
+  {en:"tapping / percussion", jp:"打診"},
+  {en:"palpation", jp:"触診"},
+  {en:"digital rectal examination", jp:"直腸指診"},
+  {en:"pelvic examination", jp:"内診"},
+  {en:"specimen", jp:"検体，標本"},
+  {en:"blood draw / phlebotomy", jp:"採血[術]"},
+  {en:"blood test / blood analysis", jp:"血液検査"},
+  {en:"urinalysis (UA)", jp:"尿検査"},
+  {en:"stool test / fecal examination", jp:"便検査，検便"},
+  {en:"fecal occult blood test (FOBT)", jp:"便潜血検査"},
+  {en:"biopsy", jp:"生検，生体[組織]検査"},
+  {en:"genetic test", jp:"遺伝子検査"},
+  {en:"electrocardiography (ECG)", jp:"心電図検査"},
+  {en:"echocardiography", jp:"心エコー検査"},
+  {en:"spirometry", jp:"肺活量測定"},
+  {en:"angiography", jp:"血管造影検査"},
+  {en:"cardiac stress test", jp:"心臓負荷試験"},
+  {en:"endoscopy", jp:"内視鏡検査"},
+  {en:"upper gastrointestinal (GI) endoscopy/esophagogastroduodenoscopy (EGD)", jp:"上部消化管内視鏡検査，胃カメラ"},
+  {en:"colonoscopy", jp:"下部消化管内視鏡検査，大腸内視鏡検査"},
+  {en:"bronchoscopy", jp:"気管支鏡検査"},
+  {en:"laparoscopy", jp:"腹腔鏡検査"},
+  {en:"spinal tap / lumbar puncture (LP)", jp:"腰椎穿刺"},
+  {en:"thoracentesis", jp:"胸腔穿刺"},
+  {en:"paracentesis", jp:"腹腔穿刺"},
+  {en:"electroencephalography (EEG)", jp:"脳波検査"},
+  {en:"electromyography (EMG)", jp:"筋電図検査"},
+  {en:"audiometry", jp:"聴力検査"},
+  {en:"fundoscopy / ophthalmoscopy", jp:"眼底検査"},
+  {en:"visual acuity test", jp:"視力検査"},
+  {en:"refraction test", jp:"屈折検査"},
+  {en:"tonometry", jp:"眼圧検査"},
+  {en:"X-ray test / radiography", jp:"X線撮影"},
+  {en:"computed tomography (CT)", jp:"コンピュータ断層撮影"},
+  {en:"magnetic resonance imaging (MRI)", jp:"磁気共鳴画像法"},
+  {en:"position emission tomography (PET)", jp:"陽電子放出断層撮影"},
+  {en:"ultrasound / ultrasonography", jp:"超音波検査"},
+  {en:"mammography", jp:"マンモグラフィ"},
+  {en:"upper gastrointestinal (GI) series", jp:"上部消化管X線造影検査，胃X線検査"},
+  {en:"lower gastrointestinal (GI) exam / barium enema", jp:"注腸造影検査"},
+  {en:"bone density test", jp:"骨密度検査"},
+  {en:"pap smear", jp:"子宮頸部細胞診（パップスメア）"},
+  {en:"prenatal diagnosis", jp:"出生前診断"},
+  {en:"amniocentesis", jp:"羊水穿刺"},
+  {en:"autopsy", jp:"[死体]解剖，剖検"}
+  {en:"prescribed medicine", jp:"処方薬"},
+  {en:"over-the-counter (OTC) drug", jp:"市販薬"},
+  {en:"tablet", jp:"錠剤"},
+  {en:"capsule", jp:"カプセル"},
+  {en:"pill", jp:"丸薬"},
+  {en:"granule", jp:"顆粒剤"},
+  {en:"syrup", jp:"シロップ剤"},
+  {en:"ointment", jp:"軟膏[剤]"},
+  {en:"patch / poultice", jp:"湿布薬"},
+  {en:"eye drops", jp:"点眼薬"},
+  {en:"ear drops", jp:"点耳薬"},
+  {en:"troche / lozenge", jp:"トローチ"},
+  {en:"inhalant", jp:"吸入薬"},
+  {en:"suppository", jp:"座薬"},
+  {en:"enema", jp:"浣腸"},
+  {en:"painkiller / analgesic", jp:"鎮痛薬"},
+  {en:"fever reducer / antipyretic", jp:"解熱剤"},
+  {en:"nonsteroidal antiinflammatory drug (NSAID)", jp:"非ステロイド性抗炎症薬"},
+  {en:"aspirin", jp:"アスピリン"},
+  {en:"steroid", jp:"ステロイド"},
+  {en:"ibuprofen", jp:"イブプロフェン"},
+  {en:"antibiotic", jp:"抗生物質"},
+  {en:"immunosuppressant", jp:"免疫抑制薬"},
+  {en:"antidote", jp:"解毒薬"},
+  {en:"vasodilator", jp:"血管拡張薬"},
+  {en:"blood thinner / anticoagulant", jp:"抗凝固薬"},
+  {en:"antihypertensive", jp:"降圧薬"},
+  {en:"hemostatic", jp:"止血薬"},
+  {en:"diuretic", jp:"利尿薬"},
+  {en:"antihistamine", jp:"抗ヒスタミン薬"},
+  {en:"decongestant", jp:"うっ血除去薬，鼻づまり改善薬"},
+  {en:"cough medicine / antitussive", jp:"鎮咳薬"},
+  {en:"expectorant", jp:"去痰薬"},
+  {en:"antacid", jp:"制酸薬"},
+  {en:"antiemetic", jp:"制吐薬"},
+  {en:"laxative", jp:"下剤，緩下剤"},
+  {en:"antidiarrheal", jp:"下痢止め，止瀉薬"},
+  {en:"digestant", jp:"消化薬"},
+  {en:"sedative", jp:"鎮静薬"},
+  {en:"tranquilizer", jp:"精神安定剤"},
+  {en:"antidepressant", jp:"抗うつ薬"},
+  {en:"anticonvulsant", jp:"抗けいれん薬，抗てんかん薬"},
+  {en:"anesthetic", jp:"麻酔薬"},
+  {en:"general anesthesia", jp:"全身麻酔"},
+  {en:"local anesthesia", jp:"局所麻酔"},
+  {en:"epidural anesthesia", jp:"硬膜外麻酔"},
+  {en:"intramuscular injection", jp:"筋肉注射"},
+  {en:"subcutaneous injection", jp:"皮下注射"},
+  {en:"intravenous injection", jp:"静脈注射"},
+  {en:"disinfectant", jp:"消毒薬"},
+  {en:"[hand] sanitizer", jp:"手指消毒薬"},
+  {en:"antipruritic", jp:"止痒剤，かゆみ止め"},
+  {en:"the pill / oral contraceptive pill (OCP)", jp:"経口避妊薬，ピル"}
+];
+
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+
+function toggleMode() {
+  isEnglishMode = !isEnglishMode;
+  document.querySelector(".controls .btn").textContent =
+    isEnglishMode ? "🔁 英→日" : "🔁 日→英";
+  render(false);
+}
+
+function render(doShuffle) {
+  let list = [...words];
+  if (doShuffle) list = shuffle(list);
+
+  let html = "";
+
+  list.forEach(w => {
+    const q = isEnglishMode ? w.en : w.jp;
+    const a = isEnglishMode ? w.jp : w.en;
+    const speakText = w.en;
+
+    html += `
+      <li class="item">
+        <button class="speak-btn" onclick="event.stopPropagation(); speak('${speakText.replace(/'/g, "\\'")}')">🔊</button>
+        <span class="q">${q}</span>
+        <span class="a" onclick="this.classList.toggle('show')">${a}</span>
+      </li>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+render(false);
+</script>
+
+</body>
+</html>
