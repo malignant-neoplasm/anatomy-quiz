@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy Quiz</title>
+
+<style>
+/* ===== 全体 ===== */
+#quiz {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* ===== 操作ボタン ===== */
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: none !important;
+  background: #1976d2 !important;
+  color: #fff !important;
+  font-weight: bold;
+  font-size: 0.9em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+.btn:nth-child(2) {
+  background: #43a047 !important;
+}
+
+.btn:nth-child(3) {
+  background: #757575 !important;
+}
+
+/* ===== リスト ===== */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+/* ===== カード ===== */
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ===== 問題 ===== */
+.q {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95em;
+  line-height: 1.35;
+}
+
+/* ===== 答え ===== */
+.a {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  min-height: 34px;
+
+  background: #444;
+  color: #444;
+  border-radius: 8px;
+
+  display: block;
+
+  font-size: 0.85em;
+  text-align: center;
+  line-height: 1.3;
+
+  padding: 6px 8px;
+  box-sizing: border-box;
+
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.a.show {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.a:hover {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* ===== 音声ボタン ===== */
+.speak-btn {
+  background: #eef2f7;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+</style>
+</head>
+
+<body>
+
+<div id="quiz">
+  <div class="controls">
+    <button class="btn" onclick="toggleMode()">🔁 英→日</button>
+    <button class="btn" onclick="render(true)">🔀 シャッフル</button>
+    <button class="btn" onclick="render(false)">標準順</button>
+  </div>
+
+  <ul id="list" class="list"></ul>
+</div>
+
+<script>
+let isEnglishMode = true;
+
+const words = [
+  {en:"dizziness", jp:"めまい"},
+  {en:"lightheadedness", jp:"浮動性めまい"},
+  {en:"vertigo", jp:"回転性めまい"},
+  {en:"disequilibrium", jp:"平衡障害"},
+  {en:"abnormal sweating / diaphoresis", jp:"発汗過多"},
+  {en:"faint[ing] / syncope", jp:"失神"},
+  {en:"headache / encephalalgia", jp:"頭痛"},
+  {en:"aura", jp:"前兆"},
+  {en:"tension headache", jp:"緊張型頭痛"},
+  {en:"cluster headache", jp:"群発頭痛"},
+  {en:"migraine", jp:"片(偏)頭痛"},
+  {en:"coma", jp:"昏睡"},
+  {en:"lethargy", jp:"嗜眠"},
+  {en:"loss of consciousness", jp:"意識消失"},
+  {en:"confusion", jp:"錯乱[状態]"},
+  {en:"delirium", jp:"せん妄"},
+  {en:"mutism", jp:"無言症"},
+  {en:"seizure", jp:"発作"},
+  {en:"fit / convulsion", jp:"痙攣"},
+  {en:"numbness / anesthesia", jp:"しびれ，無感覚"},
+  {en:"paralysis", jp:"麻痺"},
+  {en:"weakness / paresis", jp:"筋力低下"},
+  {en:"involuntary movement", jp:"不随意運動"},
+  {en:"shaking / tremor", jp:"振戦，震え"},
+  {en:"disorientation", jp:"見当識障害"},
+  {en:"neuralgia", jp:"神経痛"},
+  {en:"forgetfulness / memory loss / amnesia", jp:"物忘れ，健忘症"},
+  {en:"agnosia", jp:"失認"},
+
+  {en:"aphasia", jp:"失語"},
+  {en:"dysarthria", jp:"構音障害"},
+  {en:"hallucination", jp:"幻覚"},
+  {en:"delusion", jp:"妄想"},
+  {en:"suicide", jp:"自殺"},
+
+  {en:"stroke / cerebral apoplexy", jp:"脳卒中"},
+  {en:"cerebral (brain) infarction", jp:"脳梗塞"},
+  {en:"cerebral (brain) hemorrhage", jp:"脳出血"},
+  {en:"subarachnoid hemorrhage [SAH]", jp:"くも膜下出血"},
+  {en:"transient ischemic attack [TIA]", jp:"一過性脳虚血発作"},
+  {en:"cerebral aneurysm", jp:"脳動脈瘤"},
+  {en:"[brain] concussion", jp:"脳震とう"},
+  {en:"cerebral contusion", jp:"脳挫傷"},
+  {en:"subdural hematoma", jp:"硬膜下血腫"},
+  {en:"epidural hematoma", jp:"硬膜外血腫"},
+  {en:"cerebral (brain) abscess", jp:"脳膿瘍"},
+  {en:"brain tumor", jp:"脳腫瘍"},
+  {en:"cerebral (brain) death", jp:"脳死"},
+  {en:"hydrocephalus", jp:"脳水腫，水頭症"},
+  {en:"encephalitis", jp:"脳炎"},
+  {en:"meningitis", jp:"髄膜炎"},
+  {en:"meningioma", jp:"髄膜腫"},
+  {en:"myelitis", jp:"脊髄炎"},
+  {en:"glioma", jp:"神経膠腫"},
+
+  {en:"Parkinson disease", jp:"パーキンソン病"},
+  {en:"amyotrophic lateral sclerosis [ALS]", jp:"筋萎縮性側索硬化症"},
+  {en:"Guillain-Barré syndrome [GBS]", jp:"ギラン・バレー症候群"},
+  {en:"myasthenia gravis", jp:"重症筋無力症"},
+  {en:"multiple sclerosis [MS]", jp:"多発性硬化症"},
+  {en:"Huntington disease", jp:"ハンチントン病"},
+  {en:"hepatic encephalopathy", jp:"肝性脳症"},
+  {en:"peripheral neuropathy", jp:"末梢神経障害，ニューロパチー"},
+  {en:"dementia", jp:"認知症"},
+  {en:"vascular dementia", jp:"血管性認知症"},
+  {en:"Lewy body dementia", jp:"レビー小体型認知症"},
+  {en:"Alzheimer disease", jp:"アルツハイマー病"},
+
+  {en:"claustrophobia", jp:"閉所恐怖症"},
+  {en:"agoraphobia", jp:"広場恐怖症"},
+  {en:"panic disorder", jp:"パニック症／パニック障害"},
+  {en:"obsessive-compulsive disorder [OCD]", jp:"強迫症／強迫性障害"},
+  {en:"posttraumatic stress disorder [PTSD]", jp:"心的外傷後ストレス症"},
+  {en:"insomnia", jp:"不眠症"},
+  {en:"hypersomnia", jp:"過眠症"},
+  {en:"narcolepsy", jp:"ナルコレプシー"},
+  {en:"bulimia nervosa", jp:"神経性過食症"},
+  {en:"anorexia nervosa", jp:"神経性やせ症，神経性無食欲症"},
+  {en:"mood disorders", jp:"気分障害"},
+  {en:"depression", jp:"うつ病"},
+  {en:"bipolar disorder", jp:"双極症，躁うつ病"},
+  {en:"schizophrenia", jp:"統合失調症"},
+  {en:"dissociative identity disorder [DID]", jp:"解離性同一症，多重人格障害"},
+  {en:"adjustment disorder", jp:"適応反応症"},
+
+  {en:"intellectual disability", jp:"知的発達症，知的(能力)障害"},
+  {en:"learning disability [LD] / specific learning disorder [SLD]", jp:"限局性学習症，学習障害"},
+  {en:"attention deficit hyperactivity disorder [ADHD]", jp:"注意欠如・多動症"},
+  {en:"autism spectrum disorder [ASD]", jp:"自閉スペクトラム症"},
+  {en:"gender dysphoria", jp:"性別不合"},
+];
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+
+function toggleMode() {
+  isEnglishMode = !isEnglishMode;
+  document.querySelector(".controls .btn").textContent =
+    isEnglishMode ? "🔁 英→日" : "🔁 日→英";
+  render(false);
+}
+
+function render(doShuffle) {
+  let list = [...words];
+  if (doShuffle) list = shuffle(list);
+
+  let html = "";
+
+  list.forEach(w => {
+    const q = isEnglishMode ? w.en : w.jp;
+    const a = isEnglishMode ? w.jp : w.en;
+    const speakText = w.en;
+
+    html += `
+      <li class="item">
+        <button class="speak-btn" onclick="event.stopPropagation(); speak('${speakText.replace(/'/g, "\\'")}')">🔊</button>
+        <span class="q">${q}</span>
+        <span class="a" onclick="this.classList.toggle('show')">${a}</span>
+      </li>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+render(false);
+</script>
+
+</body>
+</html>
