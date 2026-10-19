@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anatomy Quiz</title>
+
+<style>
+/* ===== 全体 ===== */
+#quiz {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* ===== 操作ボタン ===== */
+.controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: none !important;
+  background: #1976d2 !important;
+  color: #fff !important;
+  font-weight: bold;
+  font-size: 0.9em;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+.btn:nth-child(2) {
+  background: #43a047 !important;
+}
+
+.btn:nth-child(3) {
+  background: #757575 !important;
+}
+
+/* ===== リスト ===== */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  list-style: none;
+}
+
+/* ===== カード ===== */
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+}
+
+/* ===== 問題 ===== */
+.q {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95em;
+  line-height: 1.35;
+}
+
+/* ===== 答え ===== */
+.a {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
+  min-height: 34px;
+
+  background: #444;
+  color: #444;
+  border-radius: 8px;
+
+  display: block;
+
+  font-size: 0.85em;
+  text-align: center;
+  line-height: 1.3;
+
+  padding: 6px 8px;
+  box-sizing: border-box;
+
+  overflow-wrap: break-word;
+  word-break: break-word;
+  white-space: normal;
+
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.a.show {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.a:hover {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+/* ===== 音声ボタン ===== */
+.speak-btn {
+  background: #eef2f7;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+</style>
+</head>
+
+<body>
+
+<div id="quiz">
+  <div class="controls">
+    <button class="btn" onclick="toggleMode()">🔁 英→日</button>
+    <button class="btn" onclick="render(true)">🔀 シャッフル</button>
+    <button class="btn" onclick="render(false)">標準順</button>
+  </div>
+
+  <ul id="list" class="list"></ul>
+</div>
+
+<script>
+let isEnglishMode = true;
+
+const words = [
+  {en:"chest pain / pectoralgia", jp:"胸痛"},
+  {en:"slow pulse / bradycardia", jp:"徐脈"},
+  {en:"rapid (fast) pulse / tachycardia", jp:"頻脈，速脈"},
+  {en:"arrhythmia", jp:"不整脈"},
+  {en:"heart pounding / palpitation", jp:"動悸，心悸亢進"},
+  {en:"murmur", jp:"心雑音"},
+  {en:"cardiomegaly", jp:"心肥大"},
+  {en:"cyanosis", jp:"チアノーゼ"},
+  {en:"spoon nail / koilonychia", jp:"さじ状爪"},
+  {en:"jaundice / icterus", jp:"黄疸"},
+  {en:"hemolysis", jp:"溶血"},
+  {en:"ischemic heart disease", jp:"虚血性心疾患"},
+  {en:"congenital heart disease", jp:"先天性心疾患"},
+  {en:"heart failure", jp:"心不全"},
+  {en:"angina pectoris", jp:"狭心症"},
+  {en:"heart attack / myocardial infarction", jp:"心筋梗塞"},
+  {en:"cardiac arrest", jp:"心停止"},
+  {en:"cardiomyopathy", jp:"心筋症"},
+  {en:"cardiogenic shock", jp:"心原性ショック"},
+  {en:"cardiac tamponade", jp:"心タンポナーデ"},
+  {en:"myocarditis", jp:"心筋炎"},
+  {en:"pericarditis", jp:"心膜炎"},
+  {en:"endocarditis", jp:"心内膜炎"},
+  {en:"mitral stenosis", jp:"僧帽弁狭窄症"},
+  {en:"mitral regurgitation", jp:"僧帽弁閉鎖不全症"},
+  {en:"aortic stenosis", jp:"大動脈弁狭窄症"},
+  {en:"aortic regurgitation", jp:"大動脈弁閉鎖不全症"},
+  {en:"atrial fibrillation [AF]", jp:"心房細動"},
+  {en:"ventricular fibrillation [VF]", jp:"心室細動"},
+  {en:"atrioventricular [AV] block", jp:"房室ブロック"},
+  {en:"high blood pressure / hypertension", jp:"高血圧[症]"},
+  {en:"low blood pressure / hypotension", jp:"低血圧[症]"},
+  {en:"orthostatic hypotension", jp:"起立性低血圧"},
+  {en:"blood clot / thrombus", jp:"血栓"},
+  {en:"embolism", jp:"塞栓[症]"},
+  {en:"arteriosclerosis", jp:"動脈硬化症"},
+  {en:"aortic aneurysm", jp:"大動脈瘤"},
+  {en:"aortic dissection", jp:"大動脈解離"},
+  {en:"vasculitis", jp:"血管炎"},
+  {en:"arteritis", jp:"動脈炎"},
+  {en:"iron deficiency anemia [IDA]", jp:"鉄欠乏性貧血"},
+  {en:"aplastic anemia [AA]", jp:"再生不良性貧血"},
+  {en:"hemophilia", jp:"血友病"},
+  {en:"thrombocytopenia", jp:"血小板減少症"},
+  {en:"disseminated intravascular coagulation [DIC]", jp:"播種性血管内凝固症候群"},
+  {en:"deep venous thrombosis", jp:"深部静脈血栓症"},
+  {en:"leukemia", jp:"白血病"},
+  {en:"acute lymphoblastic leukemia [ALL]", jp:"急性リンパ性白血病"},
+  {en:"acute myeloid leukemia [AML]", jp:"急性骨髄性白血病"},
+  {en:"lymphoma", jp:"リンパ腫"},
+  {en:"multiple myeloma", jp:"多発性骨髄腫"},
+  {en:"cardiopulmonary resuscitation [CPR]", jp:"心肺蘇生"},
+  {en:"coronary artery bypass grafting [CABG]", jp:"冠動脈バイパス移植術"},
+  {en:"stent placement / coronary angioplasty", jp:"冠動脈形成術，ステント留置術"},
+  {en:"acromegaly", jp:"先端巨大症"},
+  {en:"Cushing syndrome", jp:"クッシング症候群"},
+  {en:"thyroiditis", jp:"甲状腺炎"},
+  {en:"goiter / struma", jp:"甲状腺腫"},
+  {en:"hypothyroidism", jp:"甲状腺機能低下症"},
+  {en:"hyperthyroidism", jp:"甲状腺機能亢進症"},
+  {en:"diabetes [mellitus] [DM]", jp:"糖尿病"},
+  {en:"metabolic syndrome", jp:"メタボリックシンドローム"},
+  {en:"dyslipidemia", jp:"脂質異常症（高脂血症）"},
+  {en:"hypoglycemia", jp:"低血糖[症]"}
+];
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.rate = 0.85;
+  speechSynthesis.speak(u);
+}
+
+function toggleMode() {
+  isEnglishMode = !isEnglishMode;
+  document.querySelector(".controls .btn").textContent =
+    isEnglishMode ? "🔁 英→日" : "🔁 日→英";
+  render(false);
+}
+
+function render(doShuffle) {
+  let list = [...words];
+  if (doShuffle) list = shuffle(list);
+
+  let html = "";
+
+  list.forEach(w => {
+    const q = isEnglishMode ? w.en : w.jp;
+    const a = isEnglishMode ? w.jp : w.en;
+    const speakText = w.en;
+
+    html += `
+      <li class="item">
+        <button class="speak-btn" onclick="event.stopPropagation(); speak('${speakText.replace(/'/g, "\\'")}')">🔊</button>
+        <span class="q">${q}</span>
+        <span class="a" onclick="this.classList.toggle('show')">${a}</span>
+      </li>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+render(false);
+</script>
+
+</body>
+</html>
